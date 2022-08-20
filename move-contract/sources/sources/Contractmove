@@ -1,0 +1,134 @@
+address Admin {
+module RockPaperScissorsV10 {
+    use StarcoinFramework::Signer;
+    use StarcoinFramework::Timestamp;
+    use StarcoinFramework::Account;
+    use StarcoinFramework::Token;
+    // use StarcoinFramework::Event;
+    use StarcoinFramework::Vector;
+    use StarcoinFramework::Hash;
+    // use SFC::PseudoRandom;
+
+    // struct NFT has key, store { name: vector<u8> }
+
+    // struct Arbiter<phantom T: store> has store, key {
+    //     arbiter: Token::Token<T>
+    // }
+
+    struct Game<phantom T: store> has key, store {
+        aliceSecretNum: vector<u8>,
+        bobNum: u8,
+        aliceNum: u64,
+        timestamp: u64,
+        arbiter: Token::Token<T>
+    }
+    
+    struct Counter has key, store, drop {
+        name: vector<u8>,
+        value: u8,
+        timestamp: u64
+    }
+
+    public(script) fun init_game<TokenType: store>(alice: signer, aliceSecretNum: vector<u8>, amount: u128) {
+        let account = &alice;
+        let token = Account::withdraw<TokenType>(account, amount);
+
+        move_to(account, Game<TokenType>{
+            aliceSecretNum: aliceSecretNum,
+            bobNum: 10,
+            aliceNum: 10,
+            timestamp: Timestamp::now_seconds(),
+            arbiter: token,
+        });
+    }
+
+    public(script) fun bob_what<TokenType: store>(bob: signer, alice: address, bobNum: u8, amount: u128) acquires Game {
+        let account = &bob;
+        let token = Account::withdraw<TokenType>(account, amount);
+
+        let game = borrow_global_mut<Game<TokenType>>(alice);
+        game.bobNum = bobNum;
+
+        Token::deposit<TokenType>(&mut game.arbiter, token);
+    }
+
+    public(script) fun alice_what<TokenType: store>(alice: signer, aliceNum: u64) acquires Game {
+        let account = &alice;
+        // let token = Account::withdraw<TokenType>(account, amount);
+
+        let game = borrow_global_mut<Game<TokenType>>(Signer::address_of(account));
+        game.aliceNum = aliceNum;
+
+        // Token::deposit<TokenType>(&mut game.arbiter, token);
+    }
+
+    public(script) fun win_token<TokenType: store>(alice: signer) acquires Game {
+        let account = &alice;
+        let game = borrow_global_mut<Game<TokenType>>(Signer::address_of(account));
+
+        let maxValue = Token::value(&game.arbiter);
+        let token = Token::withdraw<TokenType>(&mut game.arbiter, maxValue);
+
+        Account::deposit<TokenType>(Signer::address_of(account), token);
+    }
+
+
+    // public(script) fun win_token<TokenType: store>(alice: signer) acquires Game {
+    //     let account = &alice;
+    //     let game = borrow_global_mut<Game<TokenType>>(Signer::address_of(account));
+
+    //     let maxValue = Token::value(&game.arbiter);
+    //     let token = Token::withdraw<TokenType>(&mut game.arbiter, maxValue);
+
+    //     Account::deposit<TokenType>(Signer::address_of(account), token);
+    // }
+
+    // public(script) fun clean_game<TokenType: store>(alice: signer) acquires Game {
+    //     let account = &alice;
+    //     let game = borrow_global_mut<Game<TokenType>>(Signer::address_of(account));
+    //     move_from(account, game)
+    // }
+    
+
+
+    public(script) fun init_counter<TokenType: store>(account: signer){
+        move_to(&account, Counter {
+            name:Vector::empty(), 
+            value: 0, 
+            timestamp:Timestamp::now_seconds()
+        });
+    }
+     public fun remove_counter(account: signer) {
+        // let counter = borrow_global_mut<Counter>(Signer::address_of(&account));
+        move_to(&account, Counter {
+            name:Vector::empty(), 
+            value: 0, 
+            timestamp:Timestamp::now_seconds()
+        });
+     }
+
+     public fun name_change(account: &signer,name: vector<u8>) acquires Counter {
+        let counter = borrow_global_mut<Counter>(Signer::address_of(account));
+        counter.name = Hash::sha3_256(name);
+        counter.value = counter.value + 1;
+     }
+
+    // public fun new(account: &signer, name: vector<u8>) {
+        // let account_address = ;
+        // let exist = Vector::contains<vector<u8>>(&borrow_global<UniqIdList>(account_address).data, &name);
+        // assert(!exist, 1);
+        // let id_list = borrow_global_mut<Counter>(Signer::address_of(account));
+            // let counter = borrow_global<Counter>(Signer::address_of(account));
+        // Vector::push_back<vector<u8>>(&mut id_list.data, copy name);
+        // NFT { name }
+    // }
+
+    //  public(script) fun init_counter(account: signer){
+    //     Self::init(&account)
+    //  }
+
+    //  public(script) fun change_name(account: signer,  name: vector<u8>)  acquires Counter {
+    //     Self::name_change(&account, name)
+    //  }
+}
+}
